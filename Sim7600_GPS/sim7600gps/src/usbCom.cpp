@@ -15,8 +15,8 @@
 #include <iomanip>
 
 // Constructor (Creating UsbCom Object, provides port ["ttyUSB2"] and baudrate [115200])
-UsbCom::UsbCom(const std::string &device, int baudRate)
-    : device_(device), baudRate_(baudRate), fd_(-1) {}
+UsbCom::UsbCom(int baudRate)
+    :baudRate_(baudRate), fd_(-1) {}
 
 // Destructor
 UsbCom::~UsbCom()
@@ -31,12 +31,12 @@ UsbCom::~UsbCom()
  *
  * @return false if failed connnection, or true if successful.
  */
-bool UsbCom::openPort()
+bool UsbCom::openPort(const std::string &device)
 {
-    fd_ = open(device_.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    fd_ = open(device.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd_ < 0)
     {
-        std::cerr << "Failed to open " << device_ << ": " << strerror(errno) << '\n';
+        std::cerr << "Failed to open " << device << ": " << strerror(errno) << '\n';
         return false;
     }
 

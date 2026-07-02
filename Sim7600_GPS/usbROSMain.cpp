@@ -1,4 +1,4 @@
-#include "usbCom.h"
+#include "sim7600gps/usbCom.h"
 #include <iostream>
 #include <chrono>
 #include <memory>
@@ -12,23 +12,44 @@ using namespace std::chrono_literals;
 class MinimalPublisher : public rclcpp::Node
 {
 public:
+
+    UsbCom usb;
+
     MinimalPublisher()
-    : Node("minimal_publisher"), count_(0)
+    : Node("minimal_publisher")
     {
-        publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
-        auto timer_callback =
-        [this]() -> void {
-            std::string GPSAnswer = usb.GPSRead();
+        this->usb = usb("/dev/ttyUSB2", 115200);
+
+        while (this->usb.openPort()) {
+          continue;
+        }
+        while (this->usb.sendAT())
+        {
+          continue;
+        }
+        while (this->usb.GPSOn())
+        {
+          continue;
+        }
+
+        this->publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+        this->timer_ = this->create_wall_timer(0.5, this->timer_callback);
+    }; 
+
+    void timer_callback() {
+     std::string GPSAnswer = this->usb.GPSRead();
             if (GPSAnswer=="") 
             {
                 RCLCPP_INFO(this->get_logger(), "Not able to return information");
-                continue;
             }
-            auto fields = usb.split(GPSAnswer, ',');
+            else 
+            {
+              auto fields = this->usb.split(GPSAnswer, ',');
 
-            float lat = fields[0]; // Derives lattitude number
-            float lon = fields[1]; // Derives longitude number
-            float altitude = fields[2]; // Derives Altitude
+              float lat = fields[0]; // Derives lattitude number
+              float lon = fields[1]; // Derives longitude number
+              float altitude = fields[2]; // Derives Altitude
+            }
 
 			auto navMsg = std_msgs::msg::NavSatFix(
 				header(),
@@ -42,9 +63,7 @@ public:
 
 			RCLCPP_INFO_STREAM(this->get_logger(), "Publishing: '" << navMsg.header << "'");
 			publisher_->publish(navMsg);        
-        };
-        timer_ = this->create_wall_timer(500ms, timer_callback);
-    }
+    };
 
 private:
     rclcpp::TimerBase::SharedPtr timer_;
@@ -54,11 +73,6 @@ private:
 
 int main(int argc, char * argv[])
 {
-    UsbCom usb("/dev/ttyUSB2", 115200);
-    if (!usb.openPort()) return 1;
-    if (!usb.sendAT()) return 1;
-    if (!usb.GPSOn()) return 1;
-    
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<MinimalPublisher>());
     rclcpp::shutdown();
@@ -66,6 +80,4 @@ int main(int argc, char * argv[])
 
     // std::string GPSInfo = usb.GPSRead();
     // auto fields = usb.split(GPSInfo, ',');
-
-    return 0;
 }

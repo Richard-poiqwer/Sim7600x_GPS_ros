@@ -14,14 +14,14 @@ class MinimalPublisher : public rclcpp::Node
 {
 public:
 
-    UsbCom usb = UsbCom("/dev/ttyUSB2", 115200);
+    UsbCom usb = UsbCom(115200);
 
     MinimalPublisher()
     : Node("minimal_publisher")
     {
         // this->usb = UsbCom("/dev/ttyUSB2", 115200);
 
-        while (!this->usb.openPort()) {
+        while (!this->usb.openPort("/dev/ttyUSB2")) {
           continue;
         }
         while (!this->usb.sendAT())

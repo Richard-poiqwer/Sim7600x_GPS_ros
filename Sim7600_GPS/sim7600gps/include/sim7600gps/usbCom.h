@@ -7,10 +7,10 @@
 class UsbCom
 {
 public:
-    UsbCom(const std::string &device, int baudRate = 115200);
+    UsbCom(int baudRate = 115200);
     ~UsbCom();
 
-    bool openPort();
+    bool openPort(const std::string &device);
     void closePort();
     bool sendAT();
     bool GPSOn();
